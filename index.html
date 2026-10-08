@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TalabaGig — To‘liq Escrow va Hisob-kitob Birjasi</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-[#f4f6f9] text-slate-900 antialiased min-h-screen flex flex-col justify-between">
+
+  <!-- TOP PROMO -->
+  <div class="bg-gradient-to-r from-emerald-600 to-indigo-700 text-white text-xs sm:text-sm py-2 px-4 text-center font-medium shadow-xs flex items-center justify-center gap-2">
+    <span class="bg-amber-400 text-slate-900 font-extrabold px-2 py-0.5 rounded-full text-xs">ESCROW TIZIMI</span>
+    <span>Ish qabul qilingandan so‘ng pul zudlik bilan bajaruvchining hisobiga o‘tadi! <b>1-ish 0% komissiya</b></span>
+  </div>
+
+  <!-- NAVIGATION -->
+  <header class="sticky top-0 z-40 bg-white border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-6">
+        <div class="flex items-center gap-2 cursor-pointer" onclick="navigate('feed')">
+          <div class="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-lg">
+            TG
+          </div>
+          <div>
+            <span class="text-xl font-black tracking-tight text-slate-900">Talaba<span class="text-emerald-600">Gig</span></span>
+          </div>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-5 text-xs sm:text-sm font-semibold text-slate-600">
+          <button onclick="navigate('feed')" id="navFeed" class="text-emerald-700 font-bold">Topshiriqlar lentasi</button>
+          <button onclick="navigate('myProposals')" id="navProposals" class="hover:text-emerald-600 transition">Bajaruvchi kabineti (<span id="myProposalsBadge">0</span>)</button>
+          <button onclick="navigate('myJobs')" id="navJobs" class="hover:text-emerald-600 transition">Ish beruvchi kabineti (<span id="myJobsBadge">2</span>)</button>
+        </nav>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- BALANS KO'RINIShI -->
+        <div onclick="openWithdrawModal()" class="bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-800 flex items-center gap-1.5 cursor-pointer hover:bg-emerald-100 transition">
+          <span>💳 Balans:</span>
+          <span id="userBalance" class="text-sm font-black text-emerald-700">0 so‘m</span>
+        </div>
+
+        <!-- ISH BERUVCHI TUGMASI -->
+        <button id="postJobHeaderBtn" onclick="openPostModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-2 rounded-xl text-xs sm:text-sm shadow-sm transition">
+          + Ish joylash (Tekin)
+        </button>
+
+        <!-- ROLNI ALMASHTIRISH TOGGLE -->
+        <button onclick="toggleRole()" id="roleLabel" class="bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition">
+          Rol: Bajaruvchi 🎓
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN WRAPPER -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full">
+
+    <!-- VIEW 1: LENTA (ISHLAR RO'YXATI) -->
+    <div id="viewFeed" class="space-y-4">
+      <div class="bg-white p-4 sm:p-5 rounded-3xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-black text-slate-900">Bajarish uchun topshiriqlar</h1>
+          <p class="text-xs text-slate-500">Mijoz pulni oldindan to‘laydi, ishni topshirsangiz pul hisobingizga tushadi</p>
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto">
+          <input type="text" id="feedSearch" oninput="searchJobs()" placeholder="Mavzu bo‘yicha qidirish..." class="w-full sm:w-64 px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-600">
+        </div>
+      </div>
+
+      <div id="feedList" class="space-y-4"></div>
+    </div>
+
+    <!-- VIEW 2: JOB DETAILS (TO'LIQ KO'RISH SAHIFASI) -->
+    <div id="viewJobDetail" class="hidden">
+      <button onclick="navigate('feed')" class="text-xs font-bold text-slate-600 hover:text-emerald-600 flex items-center gap-1 mb-4">
+        ← Barcha ishlarga qaytish
+      </button>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-5">
+          <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-xs">
+            <div class="flex items-center gap-2 mb-3">
+              <span id="detailCat" class="text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-50 text-emerald-700">📊 Slayd</span>
+              <span id="detailTime" class="text-xs text-slate-400 font-medium">10 daqiqa oldin</span>
+            </div>
+            
+            <h1 id="detailTitle" class="text-2xl font-black text-slate-900 leading-snug">Topshiriq nomi</h1>
+
+            <div class="mt-4 pt-4 border-t border-slate-100">
+              <h3 class="font-extrabold text-sm text-slate-900 mb-2">Batafsil talab va vazifalar:</h3>
+              <p id="detailDesc" class="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line"></p>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-100">
+              <h3 class="font-extrabold text-sm text-slate-900 mb-2">Kerakli ko‘nikmalar:</h3>
+              <div id="detailSkills" class="flex flex-wrap gap-2"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-1 space-y-4">
+          <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4">
+            <div>
+              <span class="text-[10px] text-slate-400 font-bold uppercase">To‘lanadigan narx</span>
+              <p id="detailBudget" class="text-2xl font-black text-emerald-600">45 000 so‘m</p>
+              <p class="text-xs text-slate-400 mt-0.5">Muddat: <b id="detailDeadline" class="text-slate-700">Ertagacha</b></p>
+            </div>
+
+            <hr class="border-slate-100">
+
+            <div>
+              <h3 class="font-extrabold text-sm text-slate-900 mb-3">Ish beruvchi:</h3>
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-sm" id="detailClientAvatar">AS</div>
+                <div>
+                  <h4 id="detailClientName" class="font-bold text-sm text-slate-900">Alisher S.</h4>
+                  <div class="flex items-center gap-1 text-xs text-amber-500 font-bold" id="detailClientRating"></div>
+                </div>
+              </div>
+              <p class="text-xs text-slate-500">📍 Universitet / Soha: <b id="detailClientOrg" class="text-slate-700">ToshDTI</b></p>
+            </div>
+
+            <hr class="border-slate-100">
+
+            <button onclick="openProposalModal()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold py-3.5 rounded-2xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2">
+              <span>✍️</span> Ariza topshirish (Proposal)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: MENING YUBORGAN ARIZALARIM & ISHNI TOPSHIRISH (BAJARUVCHI KABINETI) -->
+    <div id="viewMyProposals" class="hidden">
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200">
+        <h2 class="text-xl font-black text-slate-900 mb-1">Bajaruvchi kabineti (Arizalar va Ish topshirish)</h2>
+        <p class="text-xs text-slate-500 mb-6">Mijoz pulni muzlatgach ishni boshlang. Tayyor bo‘lganda faylni yuklab topshiring.</p>
+        <div id="myProposalsList" class="space-y-4"></div>
+      </div>
+    </div>
+
+    <!-- VIEW 4: MENING E'LONLARIM & ISHNI TEKSHIRISH (ISH BERUVCHI KABINETI) -->
+    <div id="viewMyJobs" class="hidden">
+      <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200">
+        <h2 class="text-xl font-black text-slate-900 mb-1">Ish beruvchi kabineti (Tekshirish va Pulni o‘tkazish)</h2>
+        <p class="text-xs text-slate-500 mb-6">Bajaruvchi topshirgan ishni ko‘rib chiqing. Ma’qul bo‘lsa, <b>"Qabul qildim va Pulni chiqarish"</b>ni bosing.</p>
+        <div id="myJobsList" class="space-y-6"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: ISHNI TOPSHIRISH (SUBMIT COMPLETED WORK) -->
+  <div id="submitWorkModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative">
+      <button onclick="closeSubmitWorkModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+
+      <div class="border-b border-slate-100 pb-3 mb-4">
+        <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Tayyor ishni topshirish</span>
+        <h3 class="text-lg font-black text-slate-900 mt-1" id="submitWorkTitle">Topshiriq nomi</h3>
+      </div>
+
+      <form onsubmit="handleDeliverWork(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Fayl havolasi (Google Drive, Canva, Telegram yoki fayl linki):</label>
+          <input required type="url" id="workFileUrl" placeholder="https://drive.google.com/... yoki canva.com/..." class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-600 font-mono">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Buyurtmachiga izoh va hisobot:</label>
+          <textarea required id="workNotes" rows="3" placeholder="Slaydlarni barchasini tayyorladim, jadvallar va animatsiyalar qo‘shildi. Ko‘rib chiqing..." class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-600"></textarea>
+        </div>
+
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-xs transition shadow-md">
+          Ishni mijozga tekshirish uchun yuborish 🚀
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: PULNI YECHIB OLISH (WITHDRAWAL) -->
+  <div id="withdrawModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl relative">
+      <button onclick="closeWithdrawModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+
+      <div class="text-center mb-4">
+        <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto text-2xl font-bold mb-2">💸</div>
+        <h3 class="text-lg font-black text-slate-900">Pulni kartaga yechish</h3>
+        <p class="text-xs text-slate-500">Mavjud hisobingiz: <b id="withdrawBalanceDisplay" class="text-emerald-600">0 so‘m</b></p>
+      </div>
+
+      <form onsubmit="handleWithdraw(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Uzcard yoki Humo karta raqami:</label>
+          <input required type="text" maxlength="16" placeholder="8600 •••• •••• ••••" class="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Yechib olinadigan summa (so‘m):</label>
+          <input required type="number" id="withdrawAmountInput" placeholder="40000" class="w-full px-3 py-2 text-xs font-bold rounded-xl border border-slate-300">
+        </div>
+
+        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs transition mt-2">
+          Kartaga o‘tkazish (0% komissiya)
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: TO'LOV CHECKOUT (UZUM, CLICK, PAYME) -->
+  <div id="paymentModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative">
+      <button onclick="closePaymentModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+
+      <div class="text-center mb-4">
+        <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">ESCROW TO‘LOV</span>
+        <h3 class="text-xl font-black text-slate-900 mt-1">Mablag‘ni muzlatish</h3>
+        <p class="text-xs text-slate-500">Ish to‘liq qabul qilinmaguncha pul platformada kafolatda turadi.</p>
+      </div>
+
+      <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs mb-3 space-y-1">
+        <div class="flex justify-between">
+          <span class="text-slate-500">Muzlatiladigan summa:</span>
+          <b id="payAmount" class="text-emerald-600 font-black text-sm">45 000 so‘m</b>
+        </div>
+      </div>
+
+      <form onsubmit="processEscrowHold(event)" class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Karta raqami (Uzcard / Humo / Uzum):</label>
+          <input required type="text" maxlength="19" placeholder="8600 •••• •••• ••••" class="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300">
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <input required type="text" maxlength="5" placeholder="MM/YY" class="px-3 py-2 text-center text-xs font-bold rounded-xl border border-slate-300">
+          <input required type="text" maxlength="6" placeholder="SMS kod" class="px-3 py-2 text-center text-xs font-bold rounded-xl border border-slate-300">
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs transition shadow-md">
+          To‘lovni amalga oshirish va muzlatish 🔒
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: ARIZA TOPSHIRISH (PROPOSAL) -->
+  <div id="proposalModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative">
+      <button onclick="closeProposalModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+
+      <h3 class="text-lg font-black text-slate-900 mb-2">Ariza topshirish</h3>
+      <form onsubmit="submitProposal(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Siz taklif qiladigan narx (so‘m):</label>
+          <input required type="number" id="propBid" class="w-full px-3 py-2.5 text-xs font-bold rounded-xl border border-slate-300">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Muddat:</label>
+          <select id="propDuration" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300">
+            <option>12 soat ichida</option>
+            <option>24 soat ichida</option>
+            <option>2-3 kun</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Cover letter:</label>
+          <textarea required id="propCover" rows="3" placeholder="Tajribangiz haqida yozing..." class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-300"></textarea>
+        </div>
+        <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs transition">
+          Arizani yuborish 🚀
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: POST JOB -->
+  <div id="postModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative">
+      <button onclick="closePostModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold">✕</button>
+      <h3 class="text-xl font-black text-slate-900 mb-3">Topshiriq qo‘yish</h3>
+      <form onsubmit="handlePostJob(event)" class="space-y-3">
+        <input required id="postTitle" type="text" placeholder="Topshiriq nomi" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300">
+        <input required id="postPrice" type="number" placeholder="Narxi (so‘m)" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-bold">
+        <textarea required id="postDesc" rows="3" placeholder="Batafsil talablar..." class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300"></textarea>
+        <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl text-xs transition">
+          E’lonni joylash
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPT -->
+  <script>
+    let currentUser = {
+      role: 'freelancer', // 'client' yoki 'freelancer'
+      name: 'Nodirbek Qodirov',
+      phone: '90 987 65 43',
+      balance: 0 // Bajaruvchining hisobidagi pul
+    };
+
+    let jobs = [
+      {
+        id: 1,
+        title: "Iqtisodiyot fanidan 18 slaydli taqdimot tayyorlash (Canva / PPT)",
+        category: "slayd",
+        categoryName: "📊 Slayd & Taqdimot",
+        budget: 45000,
+        deadline: "Ertaga soat 17:00 gacha",
+        postedTime: "15 daqiqa oldin",
+        skills: ["PowerPoint", "Canva", "Infografika"],
+        desc: "Mavzu: 'O‘zbekistonda raqamli bank xizmatlarining rivojlanishi'. 18 ta slayd, jadvallar va xulosasi bilan.",
+        client: {
+          name: "Sardor Mirzayev",
+          phone: "91 440 22 11",
+          avatar: "SM",
+          org: "O‘zMU talabasi",
+          ratingStars: "★★★★★",
+          ratingNum: "4.9",
+          reviewsCount: 14
+        },
+        proposals: [
+          {
+            id: 101,
+            freelancerName: "Nodirbek Qodirov",
+            freelancerPhone: "90 987 65 43",
+            bid: 45000,
+            duration: "12 soat",
+            letter: "Canvada tez va chiroyli tayyorlab beraman.",
+            status: "accepted", // 'pending', 'accepted', 'delivered', 'completed'
+            submission: null
+          }
+        ]
+      }
+    ];
+
+    let currentDetailJob = null;
+    let selectedJobForAction = null;
+    let selectedPropForAction = null;
+
+    // ROLNI ALMASHTIRISH (TEST UCHUN)
+    function toggleRole() {
+      currentUser.role = currentUser.role === 'freelancer' ? 'client' : 'freelancer';
+      const label = document.getElementById('roleLabel');
+      const postBtn = document.getElementById('postJobHeaderBtn');
+
+      if (currentUser.role === 'client') {
+        label.innerText = "Rol: Ish beruvchi 💼";
+        label.className = "bg-indigo-700 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition";
+        postBtn.classList.remove('hidden');
+      } else {
+        label.innerText = "Rol: Bajaruvchi 🎓";
+        label.className = "bg-slate-900 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition";
+        postBtn.classList.add('hidden');
+      }
+      renderFeed();
+      renderMyProposals();
+      renderMyJobs();
+    }
+
+    function updateBalanceUI() {
+      document.getElementById('userBalance').innerText = currentUser.balance.toLocaleString('uz-UZ') + " so‘m";
+      document.getElementById('withdrawBalanceDisplay').innerText = currentUser.balance.toLocaleString('uz-UZ') + " so‘m";
+    }
+
+    // FEED RENDER
+    function renderFeed(searchQuery = '') {
+      const container = document.getElementById('feedList');
+      container.innerHTML = '';
+
+      const filtered = jobs.filter(j => 
+        j.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        j.desc.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+      filtered.forEach(job => {
+        const skillsBadges = job.skills.map(s => `<span class="bg-slate-100 text-slate-600 text-[11px] font-semibold px-2 py-0.5 rounded">${s}</span>`).join(' ');
+
+        const card = document.createElement('div');
+        card.className = "bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 hover:border-emerald-500 hover:shadow-sm transition";
+        card.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div class="flex-grow">
+              <span class="text-[11px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded">${job.categoryName}</span>
+              <h2 onclick="openJobDetail(${job.id})" class="text-base sm:text-lg font-bold text-slate-900 hover:text-emerald-600 cursor-pointer mt-1">
+                ${job.title}
+              </h2>
+              <p class="text-xs sm:text-sm text-slate-600 mt-2 line-clamp-2">${job.desc}</p>
+              <div class="flex flex-wrap gap-1.5 mt-3">${skillsBadges}</div>
+              <div class="flex items-center gap-4 mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500">
+                <span class="text-amber-500 font-bold">${job.client.ratingStars} ${job.client.ratingNum}</span>
+                <span>👤 <b>${job.client.name}</b></span>
+                <span class="text-emerald-700 font-bold">🔒 Escrow himoyalangan</span>
+              </div>
+            </div>
+            <div class="sm:text-right flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100 min-w-[170px]">
+              <div>
+                <span class="text-[10px] text-slate-400 uppercase font-bold block">Taklif narxi</span>
+                <span class="text-xl font-black text-emerald-600">${job.budget.toLocaleString('uz-UZ')} so‘m</span>
+              </div>
+              <button onclick="openJobDetail(${job.id})" class="mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs transition shadow-sm">
+                Batafsil & Ariza →
+              </button>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function searchJobs() {
+      renderFeed(document.getElementById('feedSearch').value);
+    }
+
+    function openJobDetail(jobId) {
+      currentDetailJob = jobs.find(j => j.id === jobId);
+      if (!currentDetailJob) return;
+
+      document.getElementById('detailTitle').innerText = currentDetailJob.title;
+      document.getElementById('detailDesc').innerText = currentDetailJob.desc;
+      document.getElementById('detailBudget').innerText = currentDetailJob.budget.toLocaleString('uz-UZ') + " so‘m";
+      document.getElementById('detailDeadline').innerText = currentDetailJob.deadline;
+      document.getElementById('detailClientName').innerText = currentDetailJob.client.name;
+      document.getElementById('detailClientAvatar').innerText = currentDetailJob.client.avatar;
+      document.getElementById('detailClientRating').innerHTML = `${currentDetailJob.client.ratingStars} (${currentDetailJob.client.ratingNum})`;
+      document.getElementById('detailClientOrg').innerText = currentDetailJob.client.org;
+      document.getElementById('detailSkills').innerHTML = currentDetailJob.skills.map(s => `<span class="bg-slate-100 text-slate-700 text-xs font-semibold px-2.5 py-1 rounded-lg">${s}</span>`).join(' ');
+
+      navigate('detail');
+    }
+
+    // PROPOSAL MODAL
+    function openProposalModal() {
+      document.getElementById('propBid').value = currentDetailJob.budget;
+      document.getElementById('proposalModal').classList.remove('hidden');
+    }
+    function closeProposalModal() { document.getElementById('proposalModal').classList.add('hidden'); }
+
+    function submitProposal(e) {
+      e.preventDefault();
+      const bid = parseInt(document.getElementById('propBid').value);
+      const duration = document.getElementById('propDuration').value;
+      const letter = document.getElementById('propCover').value;
+
+      currentDetailJob.proposals.push({
+        id: Date.now(),
+        freelancerName: currentUser.name,
+        freelancerPhone: currentUser.phone,
+        bid: bid,
+        duration: duration,
+        letter: letter,
+        status: "pending",
+        submission: null
+      });
+
+      closeProposalModal();
+      alert("✅ Arizangiz muvaffaqiyatli yuborildi!");
+      renderMyProposals();
+      renderMyJobs();
+      navigate('myProposals');
+    }
+
+    // 1. ISH BERUVCHI TO'LOVNI MUZLATADI (HOLD ESCROW)
+    function openEscrowModal(jobId, propId) {
+      const job = jobs.find(j => j.id === jobId);
+      const prop = job.proposals.find(p => p.id === propId);
+      selectedJobForAction = job;
+      selectedPropForAction = prop;
+
+      document.getElementById('payAmount').innerText = prop.bid.toLocaleString('uz-UZ') + " so‘m";
+      document.getElementById('paymentModal').classList.remove('hidden');
+    }
+    function closePaymentModal() { document.getElementById('paymentModal').classList.add('hidden'); }
+
+    function processEscrowHold(e) {
+      e.preventDefault();
+      selectedPropForAction.status = "accepted"; // Pul muzlatildi, ish boshlandi
+      closePaymentModal();
+      alert(`🎉 To‘lov muvaffaqiyatli muzlatildi!\n\n${selectedPropForAction.bid.toLocaleString('uz-UZ')} so‘m xavfsiz saqlandi. Bajaruvchi ishni tugatib topshirgandan so‘ng uni tekshirib tasdiqlaysiz.`);
+      renderMyJobs();
+      renderMyProposals();
+    }
+
+    // 2. BAJARUVCHI ISHNI TOPSHIRISHI (DELIVER WORK)
+    function openSubmitWorkModal(jobId, propId) {
+      const job = jobs.find(j => j.id === jobId);
+      const prop = job.proposals.find(p => p.id === propId);
+      selectedJobForAction = job;
+      selectedPropForAction = prop;
+
+      document.getElementById('submitWorkTitle').innerText = job.title;
+      document.getElementById('submitWorkModal').classList.remove('hidden');
+    }
+    function closeSubmitWorkModal() { document.getElementById('submitWorkModal').classList.add('hidden'); }
+
+    function handleDeliverWork(e) {
+      e.preventDefault();
+      const fileUrl = document.getElementById('workFileUrl').value;
+      const notes = document.getElementById('workNotes').value;
+
+      selectedPropForAction.status = "delivered";
+      selectedPropForAction.submission = { fileUrl, notes, time: "Hozirgina" };
+
+      closeSubmitWorkModal();
+      alert("🚀 Ishingiz buyurtmachiga tekshirish uchun yuborildi!\nMijoz tekshirib 'Qabul qildim' tugmasini bosishi bilanoq pul hisobingizga tushadi.");
+      renderMyProposals();
+      renderMyJobs();
+    }
+
+    // 3. ISH BERUVCHI ISHNI TEKSHIRIB QABUL QILISHI VA PULNI O'TKAZISHI (RELEASE FUNDS)
+    function approveAndReleaseFunds(jobId, propId) {
+      const job = jobs.find(j => j.id === jobId);
+      const prop = job.proposals.find(p => p.id === propId);
+
+      const confirmRelease = confirm(`"${job.title}" ishi sizga to‘liq ma’qul bo‘ldimi?\n\nTasdiqlasangiz, muzlatilgan ${prop.bid.toLocaleString('uz-UZ')} so‘m to‘g‘ridan-to‘g‘ri bajaruvchi (${prop.freelancerName}) hisobiga o‘tkaziladi.`);
+      
+      if (!confirmRelease) return;
+
+      prop.status = "completed";
+
+      // Pul bajaruvchi balansiga tushadi
+      currentUser.balance += prop.bid;
+      updateBalanceUI();
+
+      alert(`✅ ISH MUVAFFAQIYATLI YAKUNLANDI!\n\n${prop.bid.toLocaleString('uz-UZ')} so‘m to‘liq bajaruvchining hisobiga o‘tkazildi. Hamkorlik uchun rahmat!`);
+      renderMyJobs();
+      renderMyProposals();
+    }
+
+    // RENDER: BAJARUVCHI KABINETI
+    function renderMyProposals() {
+      const container = document.getElementById('myProposalsList');
+      let myProps = [];
+
+      jobs.forEach(job => {
+        job.proposals.forEach(p => {
+          if (p.freelancerPhone === currentUser.phone || p.freelancerName === currentUser.name) {
+            myProps.push({ job, prop: p });
+          }
+        });
+      });
+
+      document.getElementById('myProposalsBadge').innerText = myProps.length;
+
+      if (myProps.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 py-6 text-center">Hali hech qanday topshiriq olmadingiz.</p>`;
+        return;
+      }
+
+      container.innerHTML = myProps.map(({ job, prop }) => {
+        let statusBadge = '';
+        let actionArea = '';
+
+        if (prop.status === 'pending') {
+          statusBadge = `<span class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-xl">Mijoz ko‘rib chiqmoqda</span>`;
+        } else if (prop.status === 'accepted') {
+          statusBadge = `<span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-xl">To‘lov muzlatildi (Jarayonda)</span>`;
+          actionArea = `
+            <div class="mt-4 pt-3 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div class="text-xs text-slate-600">
+                <p>📞 Buyurtmachi raqami: <b class="text-slate-900">+998 ${job.client.phone}</b> (${job.client.name})</p>
+                <p class="text-[11px] text-emerald-600 font-bold mt-0.5">Ishni tayyorlab, havola qilib topshiring.</p>
+              </div>
+              <button onclick="openSubmitWorkModal(${job.id}, ${prop.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-md transition flex items-center gap-1.5">
+                <span>📁</span> Tayyor ishni topshirish
+              </button>
+            </div>
+          `;
+        } else if (prop.status === 'delivered') {
+          statusBadge = `<span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-xl">Topshirildi (Mijoz tekshirmoqda)</span>`;
+          actionArea = `
+            <div class="mt-3 p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-900">
+              <p class="font-bold">Fayl yuborilgan: <a href="${prop.submission.fileUrl}" target="_blank" class="underline text-indigo-700">${prop.submission.fileUrl}</a></p>
+              <p class="text-[11px] text-slate-500 mt-1">Mijoz qabul qilgach, pul darhol balansingizga o‘tadi.</p>
+            </div>
+          `;
+        } else if (prop.status === 'completed') {
+          statusBadge = `<span class="bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl">Bajarildi • Pul hisobingizga tushdi</span>`;
+          actionArea = `
+            <div class="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 font-bold flex justify-between items-center">
+              <span>🎉 Sizga ${prop.bid.toLocaleString('uz-UZ')} so‘m o‘tkazildi (0% komissiya)!</span>
+              <button onclick="openWithdrawModal()" class="text-xs bg-emerald-600 text-white px-3 py-1 rounded-lg">Kartaga yechish →</button>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="p-5 rounded-2xl border border-slate-200 bg-white shadow-xs">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h4 class="font-bold text-slate-900 text-base">${job.title}</h4>
+                <p class="text-xs text-slate-500 mt-0.5">Taklif narxi: <b class="text-emerald-600">${prop.bid.toLocaleString('uz-UZ')} so‘m</b> | Muddat: ${prop.duration}</p>
+              </div>
+              <div>${statusBadge}</div>
+            </div>
+            ${actionArea}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // RENDER: ISH BERUVCHI KABINETI
+    function renderMyJobs() {
+      const container = document.getElementById('myJobsList');
+      container.innerHTML = jobs.map(j => `
+        <div class="p-5 sm:p-6 rounded-2xl border border-slate-200 bg-white shadow-xs">
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">Faol e'lon</span>
+              <h3 class="font-extrabold text-base text-slate-900 mt-1">${j.title}</h3>
+              <p class="text-xs text-slate-500 mt-0.5">Byudjet: <b>${j.budget.toLocaleString('uz-UZ')} so‘m</b> | Arizalar: <b>${j.proposals.length} ta</b></p>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-200 space-y-3">
+            <h4 class="text-xs font-bold text-slate-700">Tushgan arizalar va Ish holati:</h4>
+            ${j.proposals.length === 0 ? `<p class="text-xs text-slate-400 italic">Hali takliflar tushmadi.</p>` : ''}
+            
+            ${j.proposals.map(p => {
+              if (p.status === 'pending') {
+                return `
+                  <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                    <div>
+                      <span class="font-bold text-slate-900">${p.freelancerName}</span> — <span class="font-extrabold text-emerald-600">${p.bid.toLocaleString('uz-UZ')} so‘m</span>
+                      <p class="text-slate-500 text-[11px] italic mt-1">"${p.letter}"</p>
+                    </div>
+                    <button onclick="openEscrowModal(${j.id},${p.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs shadow-xs">
+                      Qabul qilish & To‘lovni muzlatish (Escrow)
+                    </button>
+                  </div>
+                `;
+              } else if (p.status === 'accepted') {
+                return `
+                  <div class="bg-amber-50/60 p-4 rounded-xl border border-amber-200 text-xs">
+                    <div class="flex justify-between items-center">
+                      <div>
+                        <span class="font-bold text-slate-900">${p.freelancerName}</span> — Ishni boshladi
+                        <p class="text-xs text-slate-500 mt-0.5">Bajaruvchi raqami: <b>+998 ${p.freelancerPhone}</b></p>
+                      </div>
+                      <span class="text-amber-800 font-bold bg-amber-100 px-2.5 py-1 rounded-lg">Muzlatilgan: ${p.bid.toLocaleString('uz-UZ')} so‘m</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 mt-2">Bajaruvchi ishni topshirishini kutilmoqda...</p>
+                  </div>
+                `;
+              } else if (p.status === 'delivered') {
+                return `
+                  <div class="bg-indigo-50 p-4 rounded-xl border-2 border-indigo-300 text-xs space-y-3">
+                    <div class="flex justify-between items-center">
+                      <div>
+                        <span class="font-extrabold text-indigo-900 text-sm">📥 Bajaruvchi ishni topshirdi!</span>
+                        <p class="text-slate-600 mt-0.5">Bajaruvchi: <b>${p.freelancerName}</b> (+998${p.freelancerPhone})</p>
+                      </div>
+                      <span class="text-emerald-700 font-black bg-emerald-100 px-3 py-1 rounded-lg">${p.bid.toLocaleString('uz-UZ')} so‘m kafolatda</span>
+                    </div>
+
+                    <div class="p-3 bg-white rounded-xl border border-indigo-100">
+                      <p class="font-bold text-slate-800">Topshirilgan fayl / havola:</p>
+                      <a href="${p.submission.fileUrl}" target="_blank" class="text-indigo-600 font-bold underline break-all">${p.submission.fileUrl}</a>
+                      <p class="text-slate-600 mt-2 italic text-[11px]">Izoh: "${p.submission.notes}"</p>
+                    </div>
+
+                    <!-- YAKUNIY TASDIQLASH VA PULNI O'TKAZISH TUGMASI -->
+                    <div class="flex items-center justify-end gap-2 pt-2">
+                      <button onclick="approveAndReleaseFunds(${j.id},${p.id})" class="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs shadow-md transition flex items-center gap-1.5">
+                        <span>✔</span> Ishni qabul qildim va Pulni o‘tkazish
+                      </button>
+                    </div>
+                  </div>
+                `;
+              } else if (p.status === 'completed') {
+                return `
+                  <div class="bg-emerald-50 p-3.5 rounded-xl border border-emerald-200 text-xs flex justify-between items-center">
+                    <div>
+                      <span class="font-bold text-emerald-900">✔ Ish qabul qilingan va yakunlangan</span>
+                      <p class="text-slate-500 text-[11px]">Bajaruvchi: ${p.freelancerName}</p>
+                    </div>
+                    <span class="text-emerald-700 font-bold">Pul o‘tkazildi: ${p.bid.toLocaleString('uz-UZ')} so‘m</span>
+                  </div>
+                `;
+              }
+            }).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // WITHDRAW
+    function openWithdrawModal() { document.getElementById('withdrawModal').classList.remove('hidden'); }
+    function closeWithdrawModal() { document.getElementById('withdrawModal').classList.add('hidden'); }
+
+    function handleWithdraw(e) {
+      e.preventDefault();
+      const amount = parseInt(document.getElementById('withdrawAmountInput').value);
+      if (amount > currentUser.balance || amount <= 0) {
+        alert("Xatolik! Hisobingizda buncha mablag‘ mavjud emas.");
+        return;
+      }
+      currentUser.balance -= amount;
+      updateBalanceUI();
+      closeWithdrawModal();
+      alert(`🎉 ${amount.toLocaleString('uz-UZ')} so‘m kartangizga muvaffaqiyatli o‘tkazildi!`);
+    }
+
+    // POST JOB
+    function openPostModal() { document.getElementById('postModal').classList.remove('hidden'); }
+    function closePostModal() { document.getElementById('postModal').classList.add('hidden'); }
+
+    function handlePostJob(e) {
+      e.preventDefault();
+      const title = document.getElementById('postTitle').value;
+      const price = parseInt(document.getElementById('postPrice').value);
+      const desc = document.getElementById('postDesc').value;
+
+      jobs.unshift({
+        id: Date.now(),
+        title: title,
+        category: "slayd",
+        categoryName: "📊 Topshiriq",
+        budget: price,
+        deadline: "24 soat",
+        postedTime: "Hozirgina",
+        skills: ["Standart"],
+        desc: desc,
+        client: {
+          name: currentUser.name,
+          phone: currentUser.phone,
+          avatar: "SM",
+          org: "Ish beruvchi",
+          ratingStars: "★★★★★",
+          ratingNum: "5.0",
+          reviewsCount: 1
+        },
+        proposals: []
+      });
+
+      closePostModal();
+      alert("Topshiriq e'lon qilindi!");
+      navigate('feed');
+    }
+
+    // NAVIGATION
+    function navigate(view) {
+      document.getElementById('viewFeed').classList.add('hidden');
+      document.getElementById('viewJobDetail').classList.add('hidden');
+      document.getElementById('viewMyProposals').classList.add('hidden');
+      document.getElementById('viewMyJobs').classList.add('hidden');
+
+      if (view === 'feed') {
+        document.getElementById('viewFeed').classList.remove('hidden');
+        renderFeed();
+      } else if (view === 'detail') {
+        document.getElementById('viewJobDetail').classList.remove('hidden');
+      } else if (view === 'myProposals') {
+        document.getElementById('viewMyProposals').classList.remove('hidden');
+        renderMyProposals();
+      } else if (view === 'myJobs') {
+        document.getElementById('viewMyJobs').classList.remove('hidden');
+        renderMyJobs();
+      }
+    }
+
+    // INIT
+    updateBalanceUI();
+    renderFeed();
+    renderMyProposals();
+    renderMyJobs();
+  </script>
+</body>
+</html>
